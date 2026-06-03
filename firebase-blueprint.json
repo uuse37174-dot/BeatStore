@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Post",
+      "description": "A blog post publication element",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "date"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A digital product available in the creator shop",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer digital purchase order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "total": { "type": "number" },
+        "paymentMethodUsed": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "customerName", "customerEmail", "total", "status", "date"]
+    }
+  },
+  "firestore": {
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "Collection of journal posts"
+    },
+    "products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of store products"
+    },
+    "orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of purchase transactions"
+    }
+  }
+}

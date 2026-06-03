@@ -1,0 +1,6 @@
+{
+  "name": "Blog & Shop Dashboard with Secure Checkout",
+  "description": "A fully functional blog platform and digital storefront featuring custom payment methods, secure checkout, email notifications, and an administrative sales tracking dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
