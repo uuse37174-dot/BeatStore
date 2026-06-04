@@ -22,11 +22,11 @@ interface AuthScreenProps {
 }
 
 export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal = false, onAuthSuccess }: AuthScreenProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState("");
+  const isSignUp = false;
+  const name = "";
+  const confirmPassword = "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
@@ -35,17 +35,10 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
   const [showGuide, setShowGuide] = useState(false);
 
   const clearForm = () => {
-    setName("");
     setEmail("");
     setPassword("");
-    setConfirmPassword("");
     setError("");
     setSuccessMsg("");
-  };
-
-  const handleToggleMode = () => {
-    setIsSignUp(!isSignUp);
-    clearForm();
   };
 
   const decodeError = (err: AuthError) => {
@@ -55,7 +48,7 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
     
     if (code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain") || msg.includes("unauthorized domain")) {
       const currentHost = window.location.hostname || "beatsell.netlify.app";
-      return `Standard Firebase Auth is locked on Netlify (${currentHost}) due to domain restrictions. No worries! Our secure Database Sandbox is completely enabled. Please click "Register / Create Account" at the bottom of this form, type ANY email and password to register, and you will be signed in instantly!`;
+      return `Standard Firebase Auth is locked on Netlify (${currentHost}) due to domain restrictions. No worries! Our secure Database Sandbox is completely enabled. Please sign in with your email and password instantly!`;
     }
 
     switch (code) {
@@ -64,7 +57,7 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
       case "auth/user-disabled":
         return "This user account has been disabled.";
       case "auth/user-not-found":
-        return "No account exists with this email address. Please register above.";
+        return "No account exists with this email address.";
       case "auth/wrong-password":
         return "Incorrect password. Please verify and try again.";
       case "auth/email-already-in-use":
@@ -169,7 +162,7 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
         } else {
           // Sign In Action
           if (!existingUser) {
-            setError("No sandboxed account with this email exists yet. Since the secure sandbox is active for this domain, please click 'Register / Create Account' at the bottom of this card to sign up instantly!");
+            setError("No sandboxed account with this email was found. Please check your qualifications and try again.");
             setLoading(false);
             return;
           }
@@ -345,7 +338,7 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
               if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
                 setError(decodeError(err));
               } else {
-                setError("No sandboxed account with this email exists yet. Since the secure sandbox is active for this domain, please click 'Register / Create Account' at the bottom of this card to sign up instantly!");
+                setError("No sandboxed account with this email was found. Please verify your credentials and try again.");
               }
               setLoading(false);
               return;
@@ -483,19 +476,19 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
         <div className="h-0.5 w-12 bg-indigo-600/20 rounded mx-auto mt-2" />
       </div>
 
-      {/* Dynamic Sign In / Register Prompt */}
+      {/* Dynamic Sign In Prompt */}
       <div className="text-center space-y-2">
         <h2 className="text-base font-extrabold text-slate-800 dark:text-slate-200 leading-tight">
-          {customPrompt ? customPrompt : (isSignUp ? "Create your account" : "Sign in to access")}
+          {customPrompt ? customPrompt : "Sign in to access"}
         </h2>
         <p className="text-xs text-slate-400 font-sans mt-1">
-          {isSignUp ? "Get instant access to publishing journals & creator tools." : "Unlock the aesthetics journal, tools, and checkout vault."}
+          Unlock the aesthetics journal, tools, and checkout vault.
         </p>
         <div className="p-2.5 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100/30 dark:border-indigo-900/40 rounded-2xl text-indigo-650 dark:text-indigo-300 text-[11px] text-center font-sans space-y-0.5 mt-1.5 transition">
           <p className="font-extrabold flex items-center justify-center gap-1 text-slate-700 dark:text-slate-200">
             <span>🛡️</span> Database Sandbox Enabled
           </p>
-          <p className="text-slate-400 dark:text-slate-500 text-[10px]">Use any email & password to register or sign in instantly!</p>
+          <p className="text-slate-400 dark:text-slate-500 text-[10px]">Use your email & password to sign in instantly!</p>
         </div>
       </div>
 
@@ -527,25 +520,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
 
       {/* Email & Password Input Submission Form */}
       <form onSubmit={handleEmailAuth} className="space-y-4 text-left">
-        
-        {isSignUp && (
-          <div className="space-y-1">
-            <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 font-sans">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                required
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-50 dark:bg-slate-950 pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 border border-slate-200/60 dark:border-slate-800 focus:border-indigo-500 focus:outline-none transition font-sans"
-              />
-            </div>
-          </div>
-        )}
-
         <div className="space-y-1">
           <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 font-sans">Email Address</label>
           <div className="relative">
@@ -585,24 +559,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
           </div>
         </div>
 
-        {isSignUp && (
-          <div className="space-y-1">
-            <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 font-sans">Confirm Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                required
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={loading}
-                className="w-full bg-slate-50 dark:bg-slate-950 pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 border border-slate-200/60 dark:border-slate-850 focus:border-indigo-500 focus:outline-none transition font-sans"
-              />
-            </div>
-          </div>
-        )}
-
         <button
           type="submit"
           disabled={loading}
@@ -610,8 +566,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : isSignUp ? (
-            "Complete Registration"
           ) : (
             "Sign In with Email"
           )}
@@ -654,19 +608,7 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
         </button>
       </div>
 
-      {/* Alternate Selection Mode Footer */}
-      <div className="text-center pt-1">
-        <p className="text-xs text-slate-500">
-          {isSignUp ? "Already have an account?" : "No account yet?"}{" "}
-          <button
-            type="button"
-            onClick={handleToggleMode}
-            className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline transition ml-1"
-          >
-            {isSignUp ? "Sign In Instead" : "Register / Create Account"}
-          </button>
-        </p>
-      </div>
+
 
       {/* Settings Help Toggle */}
       <div className="text-center border-t border-slate-100 dark:border-slate-850/60 pt-4">
