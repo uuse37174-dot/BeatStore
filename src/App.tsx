@@ -85,33 +85,12 @@ export default function App() {
 
   // Subscribe to Firebase Authentication
   useEffect(() => {
-    // Check local database-backed fallback session first
-    const localUserJson = localStorage.getItem("custom_auth_user");
-    if (localUserJson) {
-      try {
-        const localUser = JSON.parse(localUserJson);
-        setCurrentUser(localUser);
-        setAuthLoading(false);
-        if (localUser.email === "uuse37174@gmail.com") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-        return;
-      } catch (e) {
-        localStorage.removeItem("custom_auth_user");
-      }
-    }
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      const hasLocalUser = localStorage.getItem("custom_auth_user");
-      if (!hasLocalUser) {
-        setCurrentUser(user);
-        if (user && user.email === "uuse37174@gmail.com") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+      setCurrentUser(user);
+      if (user && user.email === "uuse37174@gmail.com") {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
       }
       setAuthLoading(false);
     });
@@ -871,7 +850,9 @@ SYSTEM STATUS:
 
             {isAdmin && (
               <button
-                onClick={() => setActiveView('admin')}
+                onClick={() => {
+                  setActiveView('admin');
+                }}
                 className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition ${
                   activeView === 'admin'
                     ? "bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400"
@@ -954,11 +935,7 @@ SYSTEM STATUS:
             onUpdateCartQuantity={handleUpdateCartQuantity}
             onRemoveFromCart={handleRemoveFromCart}
             onOpenCheckout={() => {
-              if (!currentUser) {
-                setShowLoginModal(true);
-              } else {
-                setIsCheckoutOpen(true);
-              }
+              setIsCheckoutOpen(true);
             }}
           />
         )}
@@ -991,6 +968,29 @@ SYSTEM STATUS:
             onUpdateSiteTexts={handleUpdateSiteTexts}
             onVerifyOrder={handleVerifyOrder}
           />
+        )}
+
+        {activeView === 'admin' && !isAdmin && (
+          <div className="max-w-md mx-auto my-12 animate-fade-in text-center p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-150 dark:border-slate-850 shadow-xl space-y-6">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white font-sans">
+                Access Restricted
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                The Author Console is reserved solely for verified administrator credentials. Private data streams and content controls are protected by email check.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="w-full py-3 px-5 bg-slate-950 dark:bg-white text-white dark:text-slate-950 hover:bg-slate-850 dark:hover:bg-slate-50 text-xs font-bold uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all"
+            >
+              Sign In as Admin
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </main>
 
