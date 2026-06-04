@@ -86,12 +86,19 @@ export default function App() {
 
   // Subscribe to Firebase Authentication with an iframe failsafe timer
   useEffect(() => {
-    // Failsafe timer: if Firebase Auth state resolution is delayed or blocked (e.g., in sandboxed iframes)
+    // Failsafe timer: if Firebase Auth state resolution or database fetching is delayed or blocked (e.g., in sandboxed iframes or due to unauthorized domain blocks)
     // we bypass the stuck loading screen block and proceed to load local/fallback content gracefully.
     const failsafeTimer = setTimeout(() => {
       setAuthLoading((rawLoadingState) => {
         if (rawLoadingState) {
           console.warn("Firebase Authentication state listener timed out. Unlocking interface with local fallback states.");
+          return false;
+        }
+        return rawLoadingState;
+      });
+      setAppLoading((rawLoadingState) => {
+        if (rawLoadingState) {
+          console.warn("Firebase Database fetching timed out. Unlocking interface with local fallback states.");
           return false;
         }
         return rawLoadingState;
@@ -1057,12 +1064,12 @@ SYSTEM STATUS:
                 <span className="text-sm">⚠️</span> Custom Firebase Database Detected
               </span>
               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
-                The application is connected to your Custom Firebase project (<code>followers-e48b4</code>). Since this database is currently uninitialized or has locked access, we loaded the application with offline-ready local mock content. <strong className="text-indigo-600 dark:text-indigo-400">To enable persistent cloud storage, verify the following in your Firebase Console:</strong>
+                The application is connected to your Custom Firebase project (<code>followers-e48b4</code>). Since this database is currently uninitialized, has locked rules, or restricts this preview domain, we have unlocked the interface with offline-ready fallback content. <strong className="text-indigo-600 dark:text-indigo-400">To enable persistent cloud storage, execute these checks in Firebase Console:</strong>
               </p>
               <div className="pl-5 text-[11px] text-slate-500 dark:text-slate-400 list-disc flex flex-col space-y-0.5 mt-1 font-mono">
-                <span>• Open Firebase Console &gt; Build &gt; **Firestore Database** and click **Create Database**.</span>
-                <span>• Go to Authentication &gt; **Sign-in method** and enable **Email/Password** provider.</span>
-                <span>• In AI Studio, you may deploy your customized security rules anytime using the Firebase deployment guidelines.</span>
+                <span>• Open Firebase Console &gt; Build &gt; **Firestore Database** and ensure **Create Database** has been clicked.</span>
+                <span>• Go to Authentication &gt; **Sign-in method** and verify that the **Email/Password** provider is enabled.</span>
+                <span>• Go to Authentication &gt; Settings &gt; **Authorized Domains** and add both <code className="bg-amber-500/15 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">beatsell.netlify.app</code> and <code className="bg-amber-500/15 px-1 py-0.5 rounded text-amber-900 dark:text-amber-200">{window.location.hostname}</code> to the list.</span>
               </div>
             </div>
             <button 
