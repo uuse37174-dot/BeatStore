@@ -84,18 +84,46 @@ export default function App() {
   const [appLoading, setAppLoading] = useState(true);
   const [dbWarning, setDbWarning] = useState<string | null>(null);
 
-  // Subscribe to Firebase Authentication
+  // Subscribe to Firebase Authentication with an iframe failsafe timer
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      if (user && user.email === "uuse37174@gmail.com") {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+    // Failsafe timer: if Firebase Auth state resolution is delayed or blocked (e.g., in sandboxed iframes)
+    // we bypass the stuck loading screen block and proceed to load local/fallback content gracefully.
+    const failsafeTimer = setTimeout(() => {
+      setAuthLoading((rawLoadingState) => {
+        if (rawLoadingState) {
+          console.warn("Firebase Authentication state listener timed out. Unlocking interface with local fallback states.");
+          return false;
+        }
+        return rawLoadingState;
+      });
+    }, 2000);
+
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user);
+        if (user && user.email === "uuse37174@gmail.com") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+        setAuthLoading(false);
+        clearTimeout(failsafeTimer);
+      }, (error) => {
+        console.error("Auth state observer error:", error);
+        setAuthLoading(false);
+        clearTimeout(failsafeTimer);
+      });
+    } catch (err) {
+      console.error("Failed to set up Auth state observer:", err);
       setAuthLoading(false);
-    });
-    return () => unsubscribe();
+      clearTimeout(failsafeTimer);
+    }
+
+    return () => {
+      unsubscribe();
+      clearTimeout(failsafeTimer);
+    };
   }, []);
 
   // Automatic seeding routine to guarantee database presence on first launch
