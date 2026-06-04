@@ -60,6 +60,10 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
       return "Email/Password sign-in provider is disabled. Please enable 'Email/Password' in your Firebase Console > Authentication > Sign-in method section.";
     }
 
+    if (code === "auth/configuration-not-found" || msg.includes("configuration-not-found") || code.includes("configuration-not-found")) {
+      return "Authentication provider is not configured. Please go to your Firebase Console > Authentication > Sign-in method, select 'Email/Password', and enable it so we can sign you in.";
+    }
+
     switch (code) {
       case "auth/invalid-email":
         return "Invalid email address format. Please enter a valid email address.";

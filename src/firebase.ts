@@ -1,22 +1,25 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
+import { getAnalytics } from "firebase/analytics";
 
-// Support external deployment (e.g. Netlify/Vercel) using your own Firestore & Auth credentials
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseConfig.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || firebaseConfig.firestoreDatabaseId || "(default)"
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBI4uZ5KSVpz6P5dNxcdkoiTO4rgsIUCDM",
+  authDomain: "followers-e48b4.firebaseapp.com",
+  projectId: "followers-e48b4",
+  storageBucket: "followers-e48b4.firebasestorage.app",
+  messagingSenderId: "696718366958",
+  appId: "1:696718366958:web:a4bac6b5b54f715b00bbff",
+  measurementId: "G-75MEB8K9WD"
 };
 
-const app = initializeApp(config);
-export const db = getFirestore(app, config.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
-export const auth = getAuth();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+export const db = getFirestore(app); /* CRITICAL: The app will break without this line */
+export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export enum OperationType {
