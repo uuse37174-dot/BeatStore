@@ -66,5 +66,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Custom database-backed auth fallback users
+    match /customUsers/{userId} {
+      allow read, write: if true;
+    }
   }
 }

@@ -43,6 +43,19 @@
         "date": { "type": "string" }
       },
       "required": ["id", "customerName", "customerEmail", "total", "status", "date"]
+    },
+    "CustomUser": {
+      "title": "CustomUser",
+      "description": "Custom authentication fallback user entity for registration & login offline simulation",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "password": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "password", "createdAt"]
     }
   },
   "firestore": {
@@ -57,6 +70,10 @@
     "orders/{orderId}": {
       "schema": "Order",
       "description": "Collection of purchase transactions"
+    },
+    "customUsers/{userId}": {
+      "schema": "CustomUser",
+      "description": "Collection of custom fallback users mapped from database"
     }
   }
 }

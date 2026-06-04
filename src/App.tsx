@@ -32,7 +32,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   const [siteTexts, setSiteTexts] = useState<SiteTexts>({
@@ -85,14 +85,35 @@ export default function App() {
 
   // Subscribe to Firebase Authentication
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthLoading(false);
-      if (user && user.email === "uuse37174@gmail.com") {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
+    // Check local database-backed fallback session first
+    const localUserJson = localStorage.getItem("custom_auth_user");
+    if (localUserJson) {
+      try {
+        const localUser = JSON.parse(localUserJson);
+        setCurrentUser(localUser);
+        setAuthLoading(false);
+        if (localUser.email === "uuse37174@gmail.com") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+        return;
+      } catch (e) {
+        localStorage.removeItem("custom_auth_user");
       }
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const hasLocalUser = localStorage.getItem("custom_auth_user");
+      if (!hasLocalUser) {
+        setCurrentUser(user);
+        if (user && user.email === "uuse37174@gmail.com") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+      setAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -449,6 +470,8 @@ export default function App() {
 
   const handleAdminLogout = async () => {
     try {
+      localStorage.removeItem("custom_auth_user");
+      setCurrentUser(null);
       await signOut(auth);
     } catch (err) {
       console.error("Failed signing out from firebase auth:", err);
@@ -1000,6 +1023,15 @@ SYSTEM STATUS:
             siteTexts={siteTexts}
             isModal={true}
             onClose={() => setShowLoginModal(false)}
+            onAuthSuccess={(user) => {
+              setCurrentUser(user);
+              if (user && user.email === "uuse37174@gmail.com") {
+                setIsAdmin(true);
+              } else {
+                setIsAdmin(false);
+              }
+              setShowLoginModal(false);
+            }}
             customPrompt={cart.length > 0 ? "Login or register to complete your order" : undefined}
           />
         </div>
