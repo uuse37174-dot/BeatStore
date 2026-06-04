@@ -34,6 +34,13 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
   const [successMsg, setSuccessMsg] = useState("");
   const [showGuide, setShowGuide] = useState(false);
 
+  const isRestrictedDomain = 
+    typeof window !== "undefined" && 
+    window.location.hostname !== "localhost" && 
+    window.location.hostname !== "127.0.0.1" &&
+    !window.location.hostname.endsWith("firebaseapp.com") && 
+    !window.location.hostname.endsWith("web.app");
+
   const clearForm = () => {
     setName("");
     setEmail("");
@@ -108,14 +115,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
     }
 
     setLoading(true);
-
-    const isRestrictedDomain = 
-      typeof window !== "undefined" && 
-      window.location.hostname !== "localhost" && 
-      window.location.hostname !== "127.0.0.1" &&
-      !window.location.hostname.endsWith("run.app") && 
-      !window.location.hostname.endsWith("firebaseapp.com") && 
-      !window.location.hostname.endsWith("web.app");
 
     if (isRestrictedDomain) {
       try {
@@ -390,14 +389,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
     setError("");
     setSuccessMsg("");
 
-    const isRestrictedDomain = 
-      typeof window !== "undefined" && 
-      window.location.hostname !== "localhost" && 
-      window.location.hostname !== "127.0.0.1" &&
-      !window.location.hostname.endsWith("run.app") && 
-      !window.location.hostname.endsWith("firebaseapp.com") && 
-      !window.location.hostname.endsWith("web.app");
-
     if (isRestrictedDomain) {
       setError("Single Sign-On (Google Login) is restricted on custom domains due to Firebase setup. Please use our active Database Sandbox to Register or Sign In with ANY Email & Password instantly!");
       return;
@@ -423,14 +414,6 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
   const handleFacebookSignIn = async () => {
     setError("");
     setSuccessMsg("");
-
-    const isRestrictedDomain = 
-      typeof window !== "undefined" && 
-      window.location.hostname !== "localhost" && 
-      window.location.hostname !== "127.0.0.1" &&
-      !window.location.hostname.endsWith("run.app") && 
-      !window.location.hostname.endsWith("firebaseapp.com") && 
-      !window.location.hostname.endsWith("web.app");
 
     if (isRestrictedDomain) {
       setError("Single Sign-On (Facebook Login) is restricted on custom domains due to Firebase setup. Please use our active Database Sandbox to Register or Sign In with ANY Email & Password instantly!");
@@ -499,6 +482,16 @@ export default function AuthScreen({ siteTexts, onClose, customPrompt, isModal =
             {isSignUp ? "Use any email & password to register or sign in instantly!" : "Use your email & password to sign in instantly!"}
           </p>
         </div>
+        {isRestrictedDomain && (
+          <div className="p-3 bg-amber-50/80 dark:bg-amber-950/25 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl text-amber-850 dark:text-amber-300 text-xs font-sans text-left space-y-1 mt-2.5 hover:border-amber-300 transition">
+            <p className="font-extrabold flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+              <span className="text-amber-600 dark:text-amber-400">⚠️</span> Single Sign-On restricted
+            </p>
+            <p className="text-amber-700/90 dark:text-amber-400/80 text-[11px] leading-relaxed font-semibold font-sans">
+              Single Sign-On (Google Login) is restricted on custom domains due to Firebase setup. Please use our active Database Sandbox to Register or Sign In with ANY Email & Password instantly!
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Global Errors and success reporting */}
