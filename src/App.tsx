@@ -389,7 +389,9 @@ export default function App() {
 
   // Fetch Firestore Datasets and update React States with 1.5s non-blocking timeouts
   const fetchAllData = async () => {
-    setDbWarning(null);
+    if (localStorage.getItem("dismiss_db_warning") !== "true") {
+      setDbWarning(null);
+    }
     try {
       // 1. Core data fetching - triggered in parallel
       const [
@@ -418,7 +420,9 @@ export default function App() {
         tempPosts.sort((a, b) => b.date.localeCompare(a.date));
         postsList = tempPosts;
       } else if (!postsSnap) {
-        setDbWarning("Firestore config offline/uninitialized");
+        if (localStorage.getItem("dismiss_db_warning") !== "true") {
+          setDbWarning("Firestore config offline/uninitialized");
+        }
       }
 
       // 3. Process products
@@ -430,7 +434,9 @@ export default function App() {
         });
         productsList = tempProducts;
       } else if (!productsSnap) {
-        setDbWarning("Firestore config offline/uninitialized");
+        if (localStorage.getItem("dismiss_db_warning") !== "true") {
+          setDbWarning("Firestore config offline/uninitialized");
+        }
       }
 
       // 4. Process secondary config documents
@@ -1108,7 +1114,10 @@ SYSTEM STATUS:
               </div>
             </div>
             <button 
-              onClick={() => setDbWarning(null)}
+              onClick={() => {
+                setDbWarning(null);
+                localStorage.setItem("dismiss_db_warning", "true");
+              }}
               className="text-[9px] hover:underline font-black uppercase tracking-widest bg-amber-500/15 hover:bg-amber-500/25 px-3.5 py-2 rounded-xl text-amber-900 dark:text-white transition duration-150 shrink-0 self-start sm:self-center cursor-pointer"
             >
               Okay, Close
