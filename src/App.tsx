@@ -27,6 +27,104 @@ import {
 } from "firebase/auth";
 import { db, auth, googleProvider, handleFirestoreError, OperationType } from "./firebase";
 
+// High-performance baseline local state fallback dataset definitions
+const BASELINE_POSTS: Post[] = [
+  {
+    id: "post-1",
+    title: "The Ultimate Guide to Indie Beat Production",
+    category: "Music Production",
+    content: "Creating high-fidelity, commercially competitive instrumental beats from a home setup requires attention to three fundamental areas: gain staging, melodic texturing, and drum carving.\n\nFirst, always make sure to keep your individual element tracks around -12dBFS to maintain peak headroom at the master bus. Second, layers should serve a structural purpose; mixing a pad, an arp, and a lead is fine, but make sure they don't fight for the same 400Hz - 2kHz frequencies.\n\nIn our digital shop, we have released our Vol. 1 Exclusive Beat Pack where we apply these exact formulas. Grab it in the store tab!",
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    image: "https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?q=80&w=600&auto=format&fit=crop",
+    comments: [
+      {
+        id: "comm-1",
+        author: "Marcus K.",
+        content: "This gain staging advice solved my muddy 808 issues! Thank you!",
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ]
+  },
+  {
+    id: "post-2",
+    title: "Designing Seamless Creator Toolkits for Quick Workflows",
+    category: "Design Tools",
+    content: "As digital creators, speed is our currency. When we build overlays, transitions, or preset libraries, we aim for maximum modularity.\n\nApplying clean templates and customizable color filters can reduce video edit turnarounds by up to 40%. In our latest creator toolkit, available in the products gallery, we offer Drag-And-Drop video transitions and alpha channel overlays optimized for modern compilers.",
+    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    image: "https://images.unsplash.com/photo-1525362081669-2b476bb628c3?q=80&w=600&auto=format&fit=crop",
+    comments: []
+  }
+];
+
+const BASELINE_PRODUCTS: Product[] = [
+  {
+    id: "prod-1",
+    name: "Exclusive Beat Pack (Vol. 1)",
+    description: "Premium Royalty-Free loops and stems. Includes 10 construction kits, BPM & scale key markings, and high-fidelity MIDI files.",
+    price: 29.99,
+    category: "Music Production",
+    image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=600&auto=format&fit=crop"
+  },
+  {
+    id: "prod-2",
+    name: "Digital Creator Transition Toolkit",
+    description: "Unpolished transitions, sound FX, and particle overlays customized for Premiere, DaVinci, and FCPX overlays.",
+    price: 14.99,
+    category: "Design Tools",
+    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop"
+  }
+];
+
+const BASELINE_CATEGORIES: string[] = ["Music Production", "Design Tools", "Updates", "General"];
+
+const BASELINE_PAYMENT_SETTINGS: PaymentSettings = {
+  activeMethod: 'gpay_qr',
+  gpayUpid: 'dp4737187@okicici',
+  gpayName: 'Dayal Pal',
+  bankName: 'Reserve Credit Bank',
+  bankAccount: '98765432101',
+  bankIfsc: 'RCBK0001234',
+  useBackupQr: true,
+  instagramLink: "https://instagram.com/dayal_pal",
+  messengerLink: "https://m.me/dayal_pal",
+  whatsAppLink: "https://wa.me/911234567890",
+  enableWhatsApp: true
+};
+
+const BASELINE_SITE_TEXTS: SiteTexts = {
+  brandName: "Dayal Pal",
+  subLabel: "Aesthetics journal",
+  heroPill: "Creative Hub & Journal",
+  heroTitle: "Fresh Audio Formulae & Production Aesthetics",
+  heroDescription: "Sharing industry insights, creator tutorials, and sound templates. Explore the store to support the channel and speed up your workflow!",
+  heroButton: "Browse Production Shop",
+  footerCopyrightName: "Dayal Pal"
+};
+
+const BASELINE_CUSTOM_INPUTS: any[] = [
+  { id: "field-1", label: "Discord Handle (Optional)", placeholder: "creative#9999", required: false },
+  { id: "field-2", label: "Instagram Username (Optional)", placeholder: "@creative_aesthetics", required: false }
+];
+
+// Timeout wrapper that guarantees non-blocking operation of any asynchronous Firestore fetch
+async function fetchWithTimeout<T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> {
+  let timeoutId: any;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => {
+      resolve(fallbackValue);
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId);
+    return result;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    return fallbackValue;
+  }
+}
+
 export default function App() {
   const [activeView, setActiveView] = useState<'journal' | 'store' | 'admin' | 'track'>('journal');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -35,33 +133,13 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const [siteTexts, setSiteTexts] = useState<SiteTexts>({
-    brandName: "Dayal Pal",
-    subLabel: "Aesthetics journal",
-    heroPill: "Creative Hub & Journal",
-    heroTitle: "Fresh Audio Formulae & Production Aesthetics",
-    heroDescription: "Sharing industry insights, creator tutorials, and sound templates. Explore the store to support the channel and speed up your workflow!",
-    heroButton: "Browse Production Shop",
-    footerCopyrightName: "Dayal Pal"
-  });
+  const [siteTexts, setSiteTexts] = useState<SiteTexts>(BASELINE_SITE_TEXTS);
 
-  // Storage states
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
-    activeMethod: 'gpay_qr',
-    gpayUpid: 'dp4737187@okicici',
-    gpayName: 'Dayal Pal',
-    bankName: 'Reserve Credit Bank',
-    bankAccount: '98765432101',
-    bankIfsc: 'RCBK0001234',
-    useBackupQr: true,
-    instagramLink: "https://instagram.com/dayal_pal",
-    messengerLink: "https://m.me/dayal_pal",
-    whatsAppLink: "https://wa.me/911234567890",
-    enableWhatsApp: true
-  });
+  // Storage states - pre-loaded with local offline-ready fallback content to guarantee instant render
+  const [posts, setPosts] = useState<Post[]>(BASELINE_POSTS);
+  const [products, setProducts] = useState<Product[]>(BASELINE_PRODUCTS);
+  const [categories, setCategories] = useState<string[]>(BASELINE_CATEGORIES);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>(BASELINE_PAYMENT_SETTINGS);
   
   // Admin stats, orders & logs
   const [orders, setOrders] = useState<Order[]>([]);
@@ -74,7 +152,7 @@ export default function App() {
     dailyRevenue: []
   });
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
-  const [customInputs, setCustomInputs] = useState<any[]>([]);
+  const [customInputs, setCustomInputs] = useState<any[]>(BASELINE_CUSTOM_INPUTS);
 
   // Cart configuration state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -309,128 +387,74 @@ export default function App() {
     }
   };
 
-  // Fetch Firestore Datasets
+  // Fetch Firestore Datasets and update React States with 1.5s non-blocking timeouts
   const fetchAllData = async () => {
     setDbWarning(null);
     try {
-      try {
-        await seedAllCollectionsIfEmpty();
-      } catch (seedErr: any) {
-        console.warn("Seeding failed (probably empty/offline database or missing rules):", seedErr);
-        setDbWarning("Firestore config offline/uninitialized");
-      }
+      // 1. Core data fetching - triggered in parallel
+      const [
+        postsSnap,
+        productsSnap,
+        catSnap,
+        paySnap,
+        siteTextsSnap,
+        customInputsSnap
+      ] = await Promise.all([
+        fetchWithTimeout(getDocs(collection(db, "posts")), 1500, null),
+        fetchWithTimeout(getDocs(collection(db, "products")), 1500, null),
+        fetchWithTimeout(getDoc(doc(db, "categories", "config")), 1500, null),
+        fetchWithTimeout(getDoc(doc(db, "paymentSettings", "config")), 1500, null),
+        fetchWithTimeout(getDoc(doc(db, "siteTexts", "config")), 1500, null),
+        fetchWithTimeout(getDoc(doc(db, "customInputs", "config")), 1500, null)
+      ]);
 
-      let postsList: Post[] = [];
-      try {
-        const postsSnap = await getDocs(collection(db, "posts"));
+      // 2. Process posts
+      let postsList = BASELINE_POSTS;
+      if (postsSnap && !postsSnap.empty) {
+        const tempPosts: Post[] = [];
         postsSnap.forEach(doc => {
-          postsList.push(doc.data() as Post);
+          tempPosts.push(doc.data() as Post);
         });
-        postsList.sort((a, b) => b.date.localeCompare(a.date));
-      } catch (err) {
-        console.error("Failed to fetch posts, loading fallback data", err);
+        tempPosts.sort((a, b) => b.date.localeCompare(a.date));
+        postsList = tempPosts;
+      } else if (!postsSnap) {
         setDbWarning("Firestore config offline/uninitialized");
-        postsList = [
-          {
-            id: "post-1",
-            title: "The Ultimate Guide to Indie Beat Production",
-            category: "Music Production",
-            content: "Creating high-fidelity, commercially competitive instrumental beats from a home setup requires attention to three fundamental areas: gain staging, melodic texturing, and drum carving.\n\nFirst, always make sure to keep your individual element tracks around -12dBFS to maintain peak headroom at the master bus. Second, layers should serve a structural purpose; mixing a pad, an arp, and a lead is fine, but make sure they don't fight for the same 400Hz - 2kHz frequencies.\n\nIn our digital shop, we have released our Vol. 1 Exclusive Beat Pack where we apply these exact formulas. Grab it in the store tab!",
-            date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            image: "https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?q=80&w=600&auto=format&fit=crop",
-            comments: [
-              {
-                id: "comm-1",
-                author: "Marcus K.",
-                content: "This gain staging advice solved my muddy 808 issues! Thank you!",
-                date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-              }
-            ]
-          },
-          {
-            id: "post-2",
-            title: "Designing Seamless Creator Toolkits for Quick Workflows",
-            category: "Design Tools",
-            content: "As digital creators, speed is our currency. When we build overlays, transitions, or preset libraries, we aim for maximum modularity.\n\nApplying clean templates and customizable color filters can reduce video edit turnarounds by up to 40%. In our latest creator toolkit, available in the products gallery, we offer Drag-And-Drop video transitions and alpha channel overlays optimized for modern compilers.",
-            date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            image: "https://images.unsplash.com/photo-1525362081669-2b476bb628c3?q=80&w=600&auto=format&fit=crop",
-            comments: []
-          }
-        ];
       }
 
-      let productsList: Product[] = [];
-      try {
-        const productsSnap = await getDocs(collection(db, "products"));
+      // 3. Process products
+      let productsList = BASELINE_PRODUCTS;
+      if (productsSnap && !productsSnap.empty) {
+        const tempProducts: Product[] = [];
         productsSnap.forEach(doc => {
-          productsList.push(doc.data() as Product);
+          tempProducts.push(doc.data() as Product);
         });
-      } catch (err) {
-        console.error("Failed to fetch products, loading fallback data", err);
+        productsList = tempProducts;
+      } else if (!productsSnap) {
         setDbWarning("Firestore config offline/uninitialized");
-        productsList = [
-          {
-            id: "prod-1",
-            name: "Exclusive Beat Pack (Vol. 1)",
-            description: "Premium Royalty-Free loops and stems. Includes 10 construction kits, BPM & scale key markings, and high-fidelity MIDI files.",
-            price: 29.99,
-            category: "Music Production",
-            image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04z?q=80&w=600&auto=format&fit=crop"
-          },
-          {
-            id: "prod-2",
-            name: "Digital Creator Transition Toolkit",
-            description: "Unpolished transitions, sound FX, and particle overlays customized for Premiere, DaVinci, and FCPX overlays.",
-            price: 14.99,
-            category: "Design Tools",
-            image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop"
-          }
-        ];
       }
 
-      let categoriesList: string[] = ["Music Production", "Design Tools", "Updates", "General"];
-      try {
-        const catSnap = await getDoc(doc(db, "categories", "config"));
-        if (catSnap.exists()) {
-          categoriesList = catSnap.data().list || categoriesList;
-        }
-      } catch (err) {
-        console.error("Failed to fetch categories, loading fallback data", err);
+      // 4. Process secondary config documents
+      let categoriesList = BASELINE_CATEGORIES;
+      if (catSnap && catSnap.exists()) {
+        categoriesList = catSnap.data().list || categoriesList;
       }
 
-      let paymentSettingsData = paymentSettings;
-      try {
-        const paySnap = await getDoc(doc(db, "paymentSettings", "config"));
-        if (paySnap.exists()) {
-          paymentSettingsData = paySnap.data() as PaymentSettings;
-        }
-      } catch (err) {
-        console.error("Failed to fetch paymentSettings, using baseline values", err);
+      let paymentSettingsData = BASELINE_PAYMENT_SETTINGS;
+      if (paySnap && paySnap.exists()) {
+        paymentSettingsData = paySnap.data() as PaymentSettings;
       }
 
-      let siteTextsData = siteTexts;
-      try {
-        const siteTextsSnap = await getDoc(doc(db, "siteTexts", "config"));
-        if (siteTextsSnap.exists()) {
-          siteTextsData = siteTextsSnap.data() as SiteTexts;
-        }
-      } catch (err) {
-        console.error("Failed to fetch siteTexts, using baseline values", err);
+      let siteTextsData = BASELINE_SITE_TEXTS;
+      if (siteTextsSnap && siteTextsSnap.exists()) {
+        siteTextsData = siteTextsSnap.data() as SiteTexts;
       }
 
-      let customInputsData: any[] = [
-        { id: "field-1", label: "Discord Handle (Optional)", placeholder: "creative#9999", required: false },
-        { id: "field-2", label: "Instagram Username (Optional)", placeholder: "@creative_aesthetics", required: false }
-      ];
-      try {
-        const customInputsSnap = await getDoc(doc(db, "customInputs", "config"));
-        if (customInputsSnap.exists()) {
-          customInputsData = customInputsSnap.data().fields || customInputsData;
-        }
-      } catch (err) {
-        console.error("Failed to fetch customInputs, using baseline values", err);
+      let customInputsData = BASELINE_CUSTOM_INPUTS;
+      if (customInputsSnap && customInputsSnap.exists()) {
+        customInputsData = customInputsSnap.data().fields || customInputsData;
       }
 
+      // 5. Update state arrays simultaneously
       setPosts(postsList);
       setProducts(productsList);
       setCategories(categoriesList);
@@ -438,11 +462,15 @@ export default function App() {
       setCustomInputs(customInputsData);
       setSiteTexts(siteTextsData);
 
+      // Trigger automatic background seeding asynchronously if the user is authenticated as Admin
       if (isAdmin) {
+        seedAllCollectionsIfEmpty().catch((seedErr) => {
+          console.warn("Background db seeding failed/offline:", seedErr);
+        });
         await fetchAdminDetails();
       }
     } catch (err) {
-      console.error("Failed to boot core data stores:", err);
+      console.warn("Failed to boot core data stores:", err);
     } finally {
       setAppLoading(false);
     }
@@ -452,13 +480,18 @@ export default function App() {
     try {
       let ordersList: Order[] = [];
       try {
-        const ordersSnap = await getDocs(collection(db, "orders"));
-        ordersSnap.forEach(doc => {
-          ordersList.push(doc.data() as Order);
-        });
-        ordersList.sort((a, b) => b.date.localeCompare(a.date));
+        const ordersSnap = await fetchWithTimeout(getDocs(collection(db, "orders")), 1500, null);
+        if (ordersSnap && !ordersSnap.empty) {
+          ordersSnap.forEach(doc => {
+            ordersList.push(doc.data() as Order);
+          });
+          ordersList.sort((a, b) => b.date.localeCompare(a.date));
+        } else {
+          // If Firestore is offline or timed out, default to offline static placeholderorders
+          throw new Error("Timeout/offline fallback");
+        }
       } catch (err) {
-        console.error("Offline order lookup failed, mounting fallback dashboard", err);
+        console.warn("Offline order lookup failed, mounting fallback dashboard dataset:", err);
         ordersList = [
           {
             id: "ORD-9281",
@@ -514,19 +547,21 @@ export default function App() {
 
       let emailLogsList: any[] = [];
       try {
-        const emailLogsSnap = await getDocs(collection(db, "emailLogs"));
-        emailLogsSnap.forEach(doc => {
-          emailLogsList.push(doc.data());
-        });
-        emailLogsList.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        const emailLogsSnap = await fetchWithTimeout(getDocs(collection(db, "emailLogs")), 1500, null);
+        if (emailLogsSnap && !emailLogsSnap.empty) {
+          emailLogsSnap.forEach(doc => {
+            emailLogsList.push(doc.data());
+          });
+          emailLogsList.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        }
       } catch (err) {
-        console.error("Failed to load emailLogs from Firestore:", err);
+        console.warn("Failed to load emailLogs from Firestore:", err);
       }
 
       setOrders(ordersList);
       setEmailLogs(emailLogsList);
 
-      // Recalculate sales figures client-side for live analytics
+      // Recalculate sales figures client-side for live analytics dashboard
       let totalSales = 0;
       let verifiedCount = 0;
       let pendingCount = 0;
